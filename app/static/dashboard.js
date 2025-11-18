@@ -63,3 +63,5 @@ input.addEventListener("keydown", e => {
 });
 
 updateStatus();
+
+setInterval(updateStatus, 1000);

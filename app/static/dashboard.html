@@ -41,7 +41,10 @@
 
 </div>
 
-<script src="/static/dashboard.js"></script>
-
+<script>
+    const s = document.createElement("script");
+    s.src = "/static/dashboard.js?v=" + Date.now();
+    document.head.appendChild(s);
+</script>
 </body>
 </html>
