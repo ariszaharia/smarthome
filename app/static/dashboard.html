@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>SmartHome Dashboard</title>
+  <link rel="stylesheet" href="/static/dashboard.css">
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap">
+</head>
+
+<body>
+
+<header>
+    <h1>Smart Home Dashboard</h1>
+</header>
+
+<div class="container">
+
+    <div class="status-panel">
+        <h2>Status</h2>
+
+        <div class="status-card">
+            <span class="label">Light:</span>
+            <span id="light-status" class="value">OFF</span>
+        </div>
+
+        <div class="status-card">
+            <span class="label">Temperature:</span>
+            <span id="temp-status" class="value">10</span>
+        </div>
+    </div>
+
+    <div class="chat-panel">
+        <div id="messages" class="messages"></div>
+
+        <div class="input-area">
+            <input id="command-input" placeholder="Type a command…">
+            <button id="send-btn">Send</button>
+        </div>
+    </div>
+
+</div>
+
+<script src="/static/dashboard.js"></script>
+
+</body>
+</html>
