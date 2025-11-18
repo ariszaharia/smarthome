@@ -51,6 +51,9 @@ async function updateStatus() {
         document.getElementById("temp-status").textContent =
             data.temperature;
 
+        document.getElementById("brightness-status").textContent = 
+            data.brightness;
+
     } catch (err) {
         console.error("Status error:", err);
     }

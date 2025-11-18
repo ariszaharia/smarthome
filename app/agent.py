@@ -48,10 +48,11 @@ def light_brightness(brightness: int):
 
 tools = [set_temp, light_switch, light_brightness]
 
+
+
 llm = ChatOllama(
     model="qwen2.5:1.5b",
     base_url="http://ollama:11434",
-    temperature=0
 )
 
 
