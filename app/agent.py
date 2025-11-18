@@ -11,6 +11,7 @@ t = Thermostat()
 l = LightBulb()
 
 
+
 @tool
 def set_temp(target_temp: int):
     """Set the thermostat to the given temperature (°C)."""
@@ -19,8 +20,6 @@ def set_temp(target_temp: int):
     t.temp = target_temp
     return f"Success! Thermostat set to {target_temp}°C."
 
-light_state = False
-l.status = light_state
 
 @tool
 def light_switch(on: bool):
