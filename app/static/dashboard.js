@@ -1,10 +1,17 @@
 const requestsDiv = document.querySelector(".messages");
 const input = document.getElementById("command-input");
 const sendBtn = document.getElementById("send-btn");
+const websocket = new WebSocket(`ws://${window.location.host}/ws`);
 
-console.log("Hello");
+websocket.onopen = () => {
+    addMessage("system", "WebSocket connection established.");
+}
 
-
+websocket.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    addMessage("ai", data.text);
+    updateStatus(data.state);
+}
 
 function addMessage(role, text) {
     const msg = document.createElement("div");
@@ -15,56 +22,26 @@ function addMessage(role, text) {
     requestsDiv.scrollTop = requestsDiv.scrollHeight;
 }
 
-
-async function sendCommand() {
+function sendCommand() {
     const text = input.value.trim();
     if (!text) return;
 
     addMessage("user", text);
     input.value = "";
 
-    try {
-        const response = await fetch("/ask/", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text })
-        });
-
-        const data = await response.json();
-
-        addMessage("ai", data.response);
-        
-
-    } catch (err) {
-        addMessage("system", "Error: " + err.message);
-    }
+    websocket.send(text);
 }
 
-async function updateStatus() {
-    try {
-        const response = await fetch("/status/");
-        const data = await response.json();
-
-        document.getElementById("light-status").textContent =
-            data.light_on ? "ON" : "OFF";
-
-        document.getElementById("temp-status").textContent =
-            data.temperature;
-
-        document.getElementById("brightness-status").textContent = 
-            data.brightness;
-
-    } catch (err) {
-        console.error("Status error:", err);
-    }
+function updateStatus(status){
+    document.getElementById("light-status").textContent = status.lights.status;
+    document.getElementById("temp-status").textContent = status.thermostat.temperature;
+    document.getElementById("brightness-status").textContent = status.lights.brightness;
 }
+
+
 
 sendBtn.addEventListener("click", sendCommand);
 
 input.addEventListener("keydown", e => {
     if (e.key === "Enter") sendCommand();
 });
-
-updateStatus();
-
-setInterval(updateStatus, 1000);
