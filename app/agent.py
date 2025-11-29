@@ -2,7 +2,7 @@ from langchain.agents import create_agent
 from langchain_ollama import ChatOllama
 from langchain_core.tools import tool
 from fastapi import FastAPI, WebSocket
-from app.utils import LightBulb, Thermostat
+from utils import LightBulb, Thermostat
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -103,7 +103,6 @@ class Command(BaseModel):
 
 
 app = FastAPI(title = "Smart Home Assisant")
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -119,12 +118,10 @@ async def websocket_endpoint(websocket: WebSocket):
                         tool_names.append(tc["name"])
 
             if tool_names:
-                response = f"{result["messages"][-1].content}\nTools called: {"".join(tool_names)}"
+                response = f"{result['messages'][-1].content}\nTools called: {''.join(tool_names)}"
             else:
                 response = result["messages"][-1].content
             
-            status = {}
-
             await websocket.send_text(response)
         except Exception as e:
             print(e)
