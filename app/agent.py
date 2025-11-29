@@ -1,8 +1,8 @@
 from langchain.agents import create_agent
 from langchain_ollama import ChatOllama
 from langchain_core.tools import tool
-from fastapi import FastAPI
-from utils import LightBulb, Thermostat
+from fastapi import FastAPI, WebSocket
+from app.utils import LightBulb, Thermostat
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -52,7 +52,7 @@ tools = [set_temp, light_switch, light_brightness]
 
 llm = ChatOllama(
     model="qwen2.5:1.5b",
-    base_url="http://ollama:11434",
+    base_url="http://localhost:11434",
 )
 
 
@@ -103,39 +103,31 @@ class Command(BaseModel):
 
 
 app = FastAPI(title = "Smart Home Assisant")
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
-@app.get("/") 
-async def dashboard(): 
-    return FileResponse("static/dashboard.html")
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    while True:
+        try:
+            message = await websocket.receive_text()
+            result = await agent.ainvoke({ "messages" : [("user", message)]})
+            tool_names = []
+            for m in result["messages"]:
+                if hasattr(m, "tool_calls"):
+                    for tc in m.tool_calls:
+                        tool_names.append(tc["name"])
 
-@app.post("/ask/")
-async def ask_agent(cmd: Command):
-    try:
-        result = await agent.ainvoke({"messages": [("user", cmd.text)]})
+            if tool_names:
+                response = f"{result["messages"][-1].content}\nTools called: {"".join(tool_names)}"
+            else:
+                response = result["messages"][-1].content
+            
+            status = {}
 
-        tool_names = []
-        for m in result["messages"]:
-            if hasattr(m, "tool_calls"):
-                for tc in m.tool_calls:
-                    tool_names.append(tc["name"])
-                
-        if tool_names:
-            return ({
-                "response" : result["messages"][-1].content,
-                "tools_called" : tool_names
-            })
-        
+            await websocket.send_text(response)
+        except Exception as e:
+            print(e)
+            break
 
-        return {"response": result["messages"][-1].content}
-
-    except Exception as e:
-        return {"error": str(e)}
-
-@app.get("/status/")
-async def get_status():
-    return {
-        "light_on": l.status,
-        "temperature": t.temp,
-        "brightness" : l.brightness
-    }
+    
