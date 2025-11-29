@@ -4,8 +4,6 @@ class LightBulb:
         self.brightness = 0
 
 class Thermostat:
-    temp : int
-    
     def __init__(self):
         self.temp = 22
 
