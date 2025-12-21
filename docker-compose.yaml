@@ -1,17 +1,16 @@
 services:
-
-  api:
-    build:
-      context: .
-    container_name: smarthome_api
-    ports:
-      - "8000:8000"
+  db:
+    image: postgres:15
+    container_name: smarthome_db
+    restart: always
     environment:
-      - PYTHONUNBUFFERED=1
+      POSTGRES_USER: aris
+      POSTGRES_PASSWORD: aris
+      POSTGRES_DB: smarthome
+    ports:
+      - "5432:5432"
     volumes:
-      - ./app:/app/app
-    depends_on:
-      - ollama
+      - postgres_data:/var/lib/postgresql/data
 
   ollama:
     container_name: ollama
@@ -22,5 +21,22 @@ services:
       - ollama_data:/root/.ollama
     restart: unless-stopped
 
+  api:
+    build:
+      context: .
+    container_name: smarthome_api
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app
+      - DATABASE_URL=postgresql+asyncpg://aris:aris@db:5432/smarthome
+    volumes:
+      - .:/app  
+    depends_on:
+      - db
+      - ollama
+
 volumes:
   ollama_data:
+  postgres_data:

@@ -1,7 +1,10 @@
 fastapi
 uvicorn[standard]
+sqlalchemy
+asyncpg
 langchain
 langchain-core
 langchain-community
 langchain-ollama
+langgraph
 pydantic
