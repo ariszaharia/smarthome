@@ -13,11 +13,11 @@ This project evolved through three distinct architectural stages, each solving a
 
 ### 2. `websocket` (The Real-Time Shift)
 * **Design**: Migrated from REST to **Asynchronous WebSockets**.
-* **The Solution**: Enabled full-duplex communication. The server can now "push" data to the frontend immediately whenever the AI agent performs an action, providing a better user experience.
+* **The Solution**: Enabled uninterrupted communication. The server can now "push" data to the frontend immediately whenever the AI agent performs an action, providing a better user experience.
 
 ### 3. `database` (The Agentic State - Current)
 * **Design**: Integrated a **PostgreSQL** database with **SQLAlchemy (Async)**.
-* **The Solution**: Moved beyond transient simulation to persistent storage. The LLM (Qwen 2.5 7B) now acts as a **Database Controller**, using tools to find devices in specific rooms and executing SQL commits to modify their state.
+* **The Solution**: Moved beyond simulation stage to persistent storage. The LLM (Qwen 2.5 7B) now acts as a **Database Controller**, using tools to find devices in specific rooms and executing SQL commits to modify their state.
 
 ---
 
