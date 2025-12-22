@@ -31,3 +31,9 @@ This project evolved through three distinct architectural stages, each solving a
 
 ---
 
+## Key Technical Features
+
+* **Persistent Storage**: The PostgreSQL database ensures state persists across container restarts.
+* **Efficient Queries**: Uses SQLAlchemy `joinedload` to optimize AI context retrieval, fetching Devices and Rooms in a single SQL operation to minimize latency.
+* **State Integrity**: Implements `flag_modified` to ensure JSONB state updates are correctly tracked and committed to the database.
+
