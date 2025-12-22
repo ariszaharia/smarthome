@@ -43,11 +43,14 @@ This project evolved through three distinct architectural stages, each solving a
 git clone -b database https://github.com/ariszaharia/smarthome.git  
 
 cd smarthome  
-First time opening:  
-docker compose up -d --build  
-If you want to remove the containers after:  
-docker compose down  
-Reopen the app:  
-docker compose up
+**First time opening:**  
+* docker compose up -d --build
+* docker exec -it smarthome_api python init_db.py (Creates the database)
+* docker exec -it smarthome_api python seed_db.py (Populates it with Devices and Rooms)
+
+  
+**Managing containers**
+* **To stop and remove containers** : docker compose down
+* **To reopen the app later** : docker compose up
 
 
