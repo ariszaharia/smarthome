@@ -12,7 +12,7 @@ A full-stack, autonomous AI agentic system designed to control a simulated smart
 The system uses a relational schema where devices are linked to rooms, and their status is stored in a flexible JSONB `state` column.
 * **Room Table**: Stores room names (e.g., "Living Room").
 * **Device Table**: Stores device types and a dynamic JSON `state` (e.g., `{"on": true, "brightness": 70}`).
-* **Users Tabel**: NOT YET IMPLEMENTED
+* **Users Table**: NOT YET IMPLEMENTED
 
 ### **2. Agentic Reasoning (`agent.py`)**
 The agent is built using `create_react_agent` and is equipped with the following tools:
@@ -23,5 +23,5 @@ The agent is built using `create_react_agent` and is equipped with the following
 
 ### **3. Real-Time Sync (WebSockets)**
 On every user message, the system performs a dual-sync:
-1. **Pre-processing**: Fetches the latest DB state using `joinedload` to provide the LLM with context.
+1. **Pre-processing**: Fetches the latest DB state using `joinedload` to provide the LLM with context (joins the Users Table with Rooms table for more efficient querying) .
 2. **Post-processing**: Re-queries the DB after tool execution to send the updated JSON state to the frontend.
