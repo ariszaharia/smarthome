@@ -4,9 +4,11 @@ from langchain_core.tools import tool
 
 from fastapi import FastAPI, WebSocket
 from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi.staticfiles import StaticFiles\
 
+from sqlalchemy.orm import joinedload
 from sqlalchemy import select
+from sqlalchemy.orm.attributes import flag_modified
 from app.database import async_session
 from app.models import Device, Room
 from langchain_core.messages import SystemMessage, HumanMessage
@@ -40,7 +42,7 @@ async def find_devices(query: str):
                 "name": d.name,
                 "type": d.type,
                 "room_name": r.name,
-                "state": d.state or {}
+                "state": d.state
             }
             for d, r in result.all()
         ]
@@ -61,6 +63,7 @@ async def set_temp(device_id: str, target_temp: int):
             return "Temperature outside safe range (15–28)."
 
         device.state["temperature"] = target_temp
+        flag_modified(device, "state")
         await session.commit()
 
         return f"Success! Thermostat set to {target_temp}°C."
@@ -80,6 +83,7 @@ async def light_switch(device_id: str, on: bool):
             return f"Device with ID {device_id} is not a light bulb."
 
         device.state["on"] = on
+        flag_modified(device, "state")
         await session.commit()
 
         return f"Light bulb turned {'ON' if on else 'OFF'}."
@@ -101,6 +105,7 @@ async def light_brightness(device_id: str, brightness: int):
             return "Lights must be ON to adjust brightness."
 
         device.state["brightness"] = brightness
+        flag_modified(device, "state")
         await session.commit()
 
         return f"Brightness set to {brightness}."
@@ -112,8 +117,9 @@ tools = [set_temp, light_switch, light_brightness, find_devices]
 
 
 llm = ChatOllama(
-    model="qwen2.5:1.5b",
-    base_url="http://localhost:11434",
+    model="qwen2.5:7b",
+    base_url="http://ollama:11434",
+    timeout=300
 )
 
 
@@ -247,6 +253,7 @@ Never repeat questions unnecessarily.
 )
 #agent.py location
 current_dir = os.path.dirname(os.path.abspath(__file__))
+
 #complete static dir path
 static_dir = os.path.join(current_dir, "static")
 
@@ -259,54 +266,38 @@ app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 @app.get('/')
 def dashboard():
-   return FileResponse(os.path.join(static_dir, "dashboard.html"))
-
-from langchain_core.messages import SystemMessage, HumanMessage
+    return FileResponse(os.path.join(static_dir, "dashboard.html"))
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
-
     while True:
         try:
             message = await websocket.receive_text()
 
             async with async_session() as session:
-                from sqlalchemy.orm import joinedload
-                result_db = await session.execute(
-                    select(Device).options(joinedload(Device.room))
-                )
-                db_devices = result_db.scalars().all()
-                device_info_for_ai = "CURRENT SYSTEM STATE:\n"
-                for d in db_devices:
-                    device_info_for_ai += (
-                        f"- ID: {d.id}, Name: {d.name}, Type: {d.type}, "
-                        f"Room: {d.room.name}, State: {d.state}\n"
-                    )
+
+                res = await session.execute(select(Device).options(joinedload(Device.room)))
+                db_devices = res.scalars().all()
+                state_str = "CURRENT STATE:\n" + "\n".join([
+                    f"- ID {d.id}: {d.name} ({d.type}) in {d.room.name}. State: {d.state}" 
+                    for d in db_devices
+                ])
 
             result = await agent.ainvoke({
-                "messages": [
-                    SystemMessage(content=device_info_for_ai),
-                    HumanMessage(content=message)
-                ]
+                "messages": [SystemMessage(content=state_str), HumanMessage(content=message)]
             })
 
             async with async_session() as session:
-                final_result = await session.execute(select(Device))
-                updated_devices_json = [
-                    {
-                        "id": d.id,
-                        "name": d.name,
-                        "type": d.type,
-                        "room_id": d.room_id,
-                        "state": d.state
-                    }
-                    for d in final_result.scalars()
+                res = await session.execute(select(Device))
+                updated_devices = [
+                    {"id": d.id, "name": d.name, "type": d.type, "state": d.state} 
+                    for d in res.scalars().all()
                 ]
 
             await websocket.send_json({
-                "text": result["messages"][-1].content,
-                "devices": updated_devices_json
+                "messages": result["messages"][-1].content,
+                "devices": updated_devices
             })
 
         except Exception as e:
