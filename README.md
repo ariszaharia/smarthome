@@ -39,8 +39,10 @@ This project evolved through three distinct architectural stages, each solving a
 
 ## How to run it
 **Make sure to install Docker Desktop and it is open**
-git clone -b database https://github.com/ariszaharia/smarthome.git
-cd smarthome
+git clone -b database https://github.com/ariszaharia/smarthome.git  
+
+cd smarthome  
+
 docker compose up
 
 
