@@ -38,7 +38,8 @@ This project evolved through three distinct architectural stages, each solving a
 * **State Integrity**: Implements `flag_modified` to ensure JSONB state updates are correctly tracked and committed to the database.
 
 ## How to run it
-**Make sure to install Docker Desktop and it is open**
+**Make sure to install Docker Desktop and it is open**  
+
 git clone -b database https://github.com/ariszaharia/smarthome.git  
 
 cd smarthome  
