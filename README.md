@@ -7,15 +7,15 @@ A full-stack, autonomous AI agentic system designed to control a simulated smart
 
 This project evolved through three distinct architectural stages, each solving a specific limitation found in the previous version:
 
-### 1. `main` (The REST API Baseline)
+### 1. `main`
 * **Design**: Standard RESTful endpoints for controlling devices and checking status.
 * **The Problem**: Required the frontend to constantly fetch a status endpoint to detect changes. This was inefficient, used unnecessary resources, and lacked real-time responsiveness.
 
-### 2. `websocket` (The Real-Time Shift)
+### 2. `websocket` 
 * **Design**: Migrated from REST to **Asynchronous WebSockets**.
 * **The Solution**: Enabled uninterrupted communication. The server can now "push" data to the frontend immediately whenever the AI agent performs an action, providing a better user experience.
 
-### 3. `database` (The Agentic State - Current)
+### 3. `database` (Current)
 * **Design**: Integrated a **PostgreSQL** database with **SQLAlchemy (Async)**.
 * **The Solution**: Moved beyond simulation stage to persistent storage. The LLM (Qwen 2.5 7B) now acts as a **Database Controller**, using tools to find devices in specific rooms and executing SQL commits to modify their state.
 
