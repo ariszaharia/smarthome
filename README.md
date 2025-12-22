@@ -1,27 +1,33 @@
-A full-stack, autonomous AI agentic system designed to control a simulated smart home environment. This project integrates a **Local LLM (Qwen 2.5 7B)** with a **PostgreSQL** database via **Asynchronous WebSockets**.
+
+A full-stack, autonomous AI agentic system designed to control a simulated smart home environment. This project demonstrates the integration of **Local LLMs (Ollama)** with **Relational Databases (PostgreSQL)** via a real-time **WebSocket** interface.
+
 ---
+
+## Evolution & Progress
+
+This project evolved through three distinct architectural stages, each solving a specific limitation found in the previous version:
+
+### 1. `main` (The REST API Baseline)
+* **Design**: Standard RESTful endpoints for controlling devices and checking status.
+* **The Problem**: Required the frontend to constantly fetch a status endpoint to detect changes. This was inefficient, used unnecessary resources, and lacked real-time responsiveness.
+
+### 2. `websocket` (The Real-Time Shift)
+* **Design**: Migrated from REST to **Asynchronous WebSockets**.
+* **The Solution**: Enabled full-duplex communication. The server can now "push" data to the frontend immediately whenever the AI agent performs an action, providing a better user experience.
+
+### 3. `database` (The Agentic State - Current)
+* **Design**: Integrated a **PostgreSQL** database with **SQLAlchemy (Async)**.
+* **The Solution**: Moved beyond transient simulation to persistent storage. The LLM (Qwen 2.5 7B) now acts as a **Database Controller**, using tools to find devices in specific rooms and executing SQL commits to modify their state.
+
+---
+
+##  Tech Stack
+
 * **LLM**: Qwen 2.5 (7B) running locally via **Ollama**.
 * **Orchestration**: **LangGraph** for reasoning and tool-calling loops.
 * **Backend**: **FastAPI** with Asynchronous WebSockets.
-* **Database**: **PostgreSQL** with **SQLAlchemy (Async)**.
-* **Infrastructure**: **Docker Compose** for container orchestration.
+* **Database**: **PostgreSQL** for persistent state management.
+* **Infrastructure**: **Docker Compose** for orchestrating API, Database, and LLM services.
 
 ---
 
-### **1. Database Schema (`models.py`)**
-The system uses a relational schema where devices are linked to rooms, and their status is stored in a flexible JSONB `state` column.
-* **Room Table**: Stores room names (e.g., "Living Room").
-* **Device Table**: Stores device types and a dynamic JSON `state` (e.g., `{"on": true, "brightness": 70}`).
-* **Users Table**: NOT YET IMPLEMENTED
-
-### **2. Agentic Reasoning (`agent.py`)**
-The agent is built using `create_react_agent` and is equipped with the following tools:
-* `find_devices`: Searches the database for devices using ILIKE queries (The LLM understands a specific word or a sequence of words and check if any entry in the table contains it).
-* `light_switch`: Modifies the `on` state of light bulbs.
-* `set_temp`: Adjusts thermostat temperatures.
-* `light_brightness`: Changes the brightness of the lightbulbs.
-
-### **3. Real-Time Sync (WebSockets)**
-On every user message, the system performs a dual-sync:
-1. **Pre-processing**: Fetches the latest DB state using `joinedload` to provide the LLM with context (joins the Users Table with Rooms table for more efficient querying) .
-2. **Post-processing**: Re-queries the DB after tool execution to send the updated JSON state to the frontend.
