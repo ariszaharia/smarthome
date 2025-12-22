@@ -43,7 +43,11 @@ This project evolved through three distinct architectural stages, each solving a
 git clone -b database https://github.com/ariszaharia/smarthome.git  
 
 cd smarthome  
-
+First time opening:  
+docker compose up -d --build  
+If you want to remove the containers after:  
+docker compose down  
+Reopen the app:  
 docker compose up
 
 
