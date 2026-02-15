@@ -20,6 +20,8 @@ services:
     volumes:
       - ollama_data:/root/.ollama
     restart: unless-stopped
+    entrypoint: /bin/sh
+    command: -c "ollama serve & sleep 5 && ollama pull qwen2.5:7b && wait"
 
   api:
     build:
