@@ -8,7 +8,6 @@ async def check_database():
     print("--- FETCHING CURRENT DATABASE STATE ---")
     async with async_session() as session:
         try:
-            # Query all devices and join with their room info
             stmt = select(Device).options(joinedload(Device.room))
             result = await session.execute(stmt)
             devices = result.scalars().all()
@@ -19,7 +18,6 @@ async def check_database():
 
             for d in devices:
                 status = "ON" if d.state.get("on") else "OFF"
-                # Handle thermostats which don't have an 'on' state
                 if d.type == "thermostat":
                     status = f"{d.state.get('temperature')}°C"
                 

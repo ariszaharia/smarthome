@@ -9,8 +9,16 @@ websocket.onopen = () => {
 
 websocket.onmessage = (event) => {
     const data = JSON.parse(event.data);
-    addMessage("ai", data.text);
-    updateStatus(data.state);
+    
+    const textRaspuns = data.message || data.messages; 
+    
+    if (textRaspuns) {
+        addMessage("ai", textRaspuns);
+    }
+    
+    if (data.devices) {
+        updateStatus(data.devices);
+    }
 }
 
 function addMessage(role, text) {
@@ -32,13 +40,30 @@ function sendCommand() {
     websocket.send(text);
 }
 
-function updateStatus(status){
-    document.getElementById("light-status").textContent = status.lights.status;
-    document.getElementById("temp-status").textContent = status.thermostat.temperature;
-    document.getElementById("brightness-status").textContent = status.lights.brightness;
+// Actualizeaza fiecare device in parte bazat pe numele din baza de date
+function updateStatus(devices) {
+    devices.forEach(device => {
+        
+        if (device.name === "Living Room Light") {
+            const statusEl = document.getElementById("living-light-status");
+            const brightEl = document.getElementById("living-brightness-status");
+            if (statusEl) statusEl.textContent = device.state.on ? "ON" : "OFF";
+            if (brightEl) brightEl.textContent = device.state.brightness || 0;
+        } 
+        
+        else if (device.name === "Bedroom Light") {
+            const statusEl = document.getElementById("bedroom-light-status");
+            const brightEl = document.getElementById("bedroom-brightness-status");
+            if (statusEl) statusEl.textContent = device.state.on ? "ON" : "OFF";
+            if (brightEl) brightEl.textContent = device.state.brightness || 0;
+        } 
+        
+        else if (device.name === "Living Room Thermostat") {
+            const tempEl = document.getElementById("living-temp-status");
+            if (tempEl) tempEl.textContent = device.state.temperature || 0;
+        }
+    });
 }
-
-
 
 sendBtn.addEventListener("click", sendCommand);
 
