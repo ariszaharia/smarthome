@@ -40,7 +40,7 @@ function sendCommand() {
     websocket.send(text);
 }
 
-// Actualizeaza fiecare device in parte bazat pe numele din baza de date
+
 function updateStatus(devices) {
     devices.forEach(device => {
         
