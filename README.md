@@ -1,3 +1,4 @@
+# Smart Home
 
 A full-stack, AI agentic system designed to control a simulated smart home environment. This project demonstrates the integration of **Local LLMs (Ollama)** with **Relational Databases (PostgreSQL)** via a real-time **WebSocket** interface.
 
