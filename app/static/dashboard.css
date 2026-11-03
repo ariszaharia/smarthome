@@ -1,112 +1,810 @@
+/* An architect's floor plan of the house at night.
+   Walls are solid fill (poché), floors are dusk blue, and each lamp
+   throws a pool of tungsten light sized by its brightness. */
+
+:root {
+    --page: #e3e6df;
+    --ink: #1f2b31;
+    --muted: #59666a;
+    --rule: #c2c9c0;
+    --field: #f3f5f0;
+    --poche: #25313a;
+    --floor: #3a4853;
+    --floor-warm: #6a5838;
+    --floor-text: #ccd5d7;
+    --slat: #8a979c;
+    --lamp: #ffc96e;
+    --lamp-core: #fff3d6;
+    --ok: #2c7650;
+    --error: #ad3128;
+
+    --wall: 14px;        /* exterior walls */
+    --wall-in: 6px;      /* interior walls */
+    color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --page: #161c20;
+        --ink: #dfe5e2;
+        --muted: #909c9e;
+        --rule: #2d373d;
+        --field: #1d252a;
+        --poche: #0b1013;
+        --floor: #26323b;
+        --floor-warm: #4f4129;
+        --floor-text: #b4c0c3;
+        --slat: #5f6d73;
+        --lamp: #f6bd5c;
+        --lamp-core: #ffeac0;
+        --ok: #6cc495;
+        --error: #f08a7e;
+        color-scheme: dark;
+    }
+}
+
+/* ---------- base ---------- */
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    height: 100%;
+}
+
 body {
     margin: 0;
-    font-family: "Inter", sans-serif;
-    background: #f4f5f7;
-}
-
-header {
-    background: #333;
-    color: white;
-    padding: 20px;
-    text-align: center;
-    font-size: 1.4rem;
-    letter-spacing: 1px;
-}
-
-.container {
-    display: flex;
-    height: calc(100vh - 80px);
-}
-
-.status-panel {
-    width: 30%;
-    background: white;
-    padding: 25px;
-    border-right: 3px solid #ddd;
     display: flex;
     flex-direction: column;
+    font-family: "Archivo", system-ui, sans-serif;
+    font-size: 16px;
+    font-variation-settings: "wdth" 100;
+    line-height: 1.45;
+    color: var(--ink);
+    background: var(--page);
 }
 
-.status-panel h2 {
-    margin-top: 0;
-    margin-bottom: 20px;
-    font-size: 1.6rem;
+h1,
+h2,
+h3,
+p {
+    margin: 0;
 }
 
-.status-card {
-    background: #fafafa;
-    padding: 14px 18px;
-    margin-bottom: 15px;
-    border-radius: 8px;
+code {
+    font-family: Consolas, ui-monospace, monospace;
+    font-size: 0.9em;
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+}
+
+/* ---------- header ---------- */
+
+.top {
     display: flex;
+    align-items: baseline;
     justify-content: space-between;
-    font-size: 1.2rem;
-    border: 1px solid #eee;
+    gap: 16px;
+    width: 100%;
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 28px 40px 0;
 }
 
-.value.on {
-    color: #38b000;
-    font-weight: 600;
+.top h1 {
+    font-size: 1.375rem;
+    font-weight: 800;
+    font-stretch: 125%;
+    font-variation-settings: "wdth" 125;
+    letter-spacing: -0.01em;
 }
 
-.value.off {
-    color: #d00000;
-    font-weight: 600;
+.connection {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.875rem;
+    color: var(--muted);
 }
 
-.chat-panel {
+.connection::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.connection[data-status="online"] {
+    color: var(--ok);
+}
+
+.connection[data-status="offline"] {
+    color: var(--error);
+}
+
+/* ---------- layout ---------- */
+
+.layout {
     flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(340px, 2fr);
+    gap: 48px;
+    width: 100%;
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 40px 40px 32px;
+}
+
+.plan-col {
+    min-width: 0;
+    align-self: start;
+    padding-top: 44px;
+}
+
+/* ---------- the plan ---------- */
+
+/* The plan's background is the wall fill: its padding draws the exterior
+   walls and the gaps between rooms draw the interior ones. */
+.plan {
     display: flex;
     flex-direction: column;
-    padding: 25px;
+    gap: var(--wall-in);
+    padding: var(--wall);
+    background: var(--poche);
 }
 
-.messages {
-    overflow-y: auto;
-    padding-right: 10px;
-}
-
-.msg {
-    padding: 12px 16px;
-    margin-bottom: 10px;
-    max-width: 75%;
-    border-radius: 10px;
-    font-size: 1rem;
-}
-
-.msg.user {
-    background: #d1e7ff;
-    align-self: flex-end;
-}
-
-.msg.ai {
-    background: #ececec;
-    align-self: flex-start;
-}
-
-.input-area {
+.row {
     display: flex;
-    gap: 10px;
+    gap: var(--wall-in);
 }
 
-.input-area input {
-    flex: 1;
-    padding: 12px;
-    border-radius: 8px;
-    border: 1px solid #bbb;
-    font-size: 1rem;
+.plan-note {
+    min-height: 320px;
+    padding: 24px;
+    color: var(--floor-text);
+    background: var(--floor);
 }
 
-.input-area button {
-    padding: 12px 20px;
-    background: #333;
-    color: white;
-    border: none;
-    border-radius: 8px;
+.room {
+    --level: 0;
+    --closed: 0;
+    position: relative;
+    flex: var(--grow, 1) 1 0;
+    min-width: 0;
+    min-height: clamp(320px, 56vh, 600px);
+    color: var(--floor-text);
+    background-color: color-mix(in oklab, var(--floor-warm) calc(var(--level) * 55%), var(--floor));
+    transition: background-color 1.2s ease;
+}
+
+.plan.two-rows .room {
+    min-height: clamp(250px, 32vh, 340px);
+}
+
+/* Light pools sit on their own layer so they can be clipped to the room
+   without clipping the doors and windows cut into the walls. */
+.floor {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.pool {
+    --b: 0;
+    position: absolute;
+    width: 320px;
+    aspect-ratio: 1;
+    left: var(--x);
+    top: var(--y);
+    border-radius: 50%;
+    background: radial-gradient(closest-side,
+        color-mix(in oklab, var(--lamp-core) 85%, transparent) 0%,
+        color-mix(in oklab, var(--lamp) 60%, transparent) 22%,
+        color-mix(in oklab, var(--lamp) 18%, transparent) 60%,
+        transparent 100%);
+    opacity: var(--b);
+    transform: translate(-50%, -50%) scale(calc(0.45 + var(--b) * 0.75));
+    transition: opacity 1.2s ease, transform 1.2s ease;
+}
+
+/* ---------- walls: windows, openings, the front door ---------- */
+
+/* Window in the outside wall: glazing drawn as a thin double line.
+   Back-row rooms have it in the back wall, front-row rooms in the front. */
+.window {
+    position: absolute;
+    top: calc(var(--wall) * -1);
+    left: 50%;
+    width: min(38%, 140px);
+    height: var(--wall);
+    overflow: hidden;
+    transform: translateX(-50%);
+    background:
+        linear-gradient(var(--poche), var(--poche)) 0 0 / 100% 2px no-repeat,
+        linear-gradient(var(--poche), var(--poche)) 0 50% / 100% 1px no-repeat,
+        linear-gradient(var(--poche), var(--poche)) 0 100% / 100% 2px no-repeat,
+        var(--page);
+}
+
+.room.front .window {
+    top: auto;
+    bottom: calc(var(--wall) * -1);
+}
+
+/* Blinds: slats drawn across the glass, as far as they are closed */
+.shade {
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(90deg, var(--slat) 0 3px, transparent 3px 5px);
+    transform: scaleX(var(--closed));
+    transform-origin: left;
+    transition: transform 1s ease;
+}
+
+/* Doorways between rooms: a gap in the interior wall, painted as floor */
+.opening {
+    position: absolute;
+    display: none;
+    background: inherit;
+}
+
+.opening.below {
+    left: 30%;
+    bottom: calc(var(--wall-in) * -1);
+    width: 48px;
+    height: var(--wall-in);
+}
+
+.opening.side {
+    display: block;
+    top: 40%;
+    right: calc(var(--wall-in) * -1);
+    width: var(--wall-in);
+    height: 48px;
+}
+
+.row .room:last-child .opening.side {
+    display: none;
+}
+
+.plan.two-rows .row:first-child .opening.below {
+    display: block;
+}
+
+/* Front door: shut with the bolt thrown when locked, swung open when not */
+.front-door {
+    position: absolute;
+    left: 22px;
+    bottom: calc(var(--wall) * -1);
+    width: 44px;
+    height: var(--wall);
+    background: var(--floor);
+}
+
+.front-door::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: 50%;
+    width: 44px;
+    height: 44px;
+    border-top: 1px solid color-mix(in oklab, var(--floor-text) 55%, transparent);
+    border-right: 1px solid color-mix(in oklab, var(--floor-text) 55%, transparent);
+    border-top-right-radius: 100%;
+    transition: opacity 0.5s ease;
+}
+
+.front-door::after {
+    content: "";
+    position: absolute;
+    right: -5px;
+    top: 50%;
+    width: 9px;
+    height: 4px;
+    background: var(--lamp);
+    opacity: 0;
+    transform: translateY(-50%);
+    transition: opacity 0.3s ease 0.5s;
+}
+
+.leaf {
+    position: absolute;
+    left: 0;
+    top: calc(50% - 1px);
+    width: 44px;
+    height: 2px;
+    background: var(--floor-text);
+    transform-origin: 0 50%;
+    transform: rotate(-90deg);
+    transition: transform 0.7s ease;
+}
+
+.front-door.is-locked .leaf {
+    transform: rotate(0deg);
+}
+
+.front-door.is-locked::before {
+    opacity: 0;
+}
+
+.front-door.is-locked::after {
+    opacity: 1;
+}
+
+/* ---------- inside the rooms ---------- */
+
+.room h3 {
+    position: absolute;
+    top: 16px;
+    left: 18px;
+    right: 110px;
+    font-size: 1.25rem;
+    font-weight: 700;
+    font-stretch: 75%;
+    font-variation-settings: "wdth" 75;
+    line-height: 1.1;
+}
+
+/* Fixtures are buttons: clicking one starts a command for it */
+.fixture {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 4px;
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: 0;
     cursor: pointer;
-    font-size: 1rem;
 }
 
-.input-area button:hover {
-    background: #444;
+.lamp {
+    left: var(--x);
+    top: var(--y);
+    transform: translate(-50%, -14px);
+}
+
+/* Plan symbol for a ceiling light: a circle with a cross */
+.lamp-mark {
+    position: relative;
+    width: 22px;
+    height: 22px;
+    border: 1.5px solid var(--floor-text);
+    border-radius: 50%;
+    transition: background-color 0.6s ease, border-color 0.6s ease, box-shadow 0.6s ease;
+}
+
+.lamp-mark::before,
+.lamp-mark::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 1.5px;
+    height: 100%;
+    background: currentColor;
+    transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.lamp-mark::after {
+    transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.lamp.is-on .lamp-mark {
+    color: var(--poche);
+    background: var(--lamp-core);
+    border-color: var(--lamp-core);
+    box-shadow: 0 0 18px 4px color-mix(in oklab, var(--lamp) 70%, transparent);
+}
+
+/* Labels sit on a wall-coloured tag so they stay readable inside the light */
+.tag {
+    padding: 3px 8px;
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    color: var(--floor-text);
+    background: var(--poche);
+}
+
+.tag b {
+    font-weight: 700;
+}
+
+/* Thermostat: the plan's "T" symbol, with its setting beside it */
+.thermostat {
+    top: 10px;
+    right: 8px;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding-right: 0;
+}
+
+.thermostat-value {
+    font-size: 1.875rem;
+    font-weight: 600;
+    font-stretch: 125%;
+    font-variation-settings: "wdth" 125;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    letter-spacing: -0.02em;
+}
+
+.thermostat-value small {
+    margin-left: 2px;
+    font-size: 0.5em;
+    font-weight: 500;
+    vertical-align: 0.8em;
+}
+
+.t-mark {
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--poche);
+    background: var(--floor-text);
+    border-radius: 50%;
+}
+
+/* Blinds, plugs, speakers and locks: labelled symbols along the floor */
+.wall-fixtures {
+    position: absolute;
+    left: 14px;
+    right: 14px;
+    bottom: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.room.has-door .wall-fixtures {
+    left: 80px;
+}
+
+.wall-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: inherit;
+    border: 0;
+    cursor: pointer;
+}
+
+.wall-tag svg {
+    flex: none;
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: color 0.4s ease;
+}
+
+.wall-tag.is-on svg,
+.wall-tag.is-unlocked b {
+    color: var(--lamp);
+}
+
+.fixture:hover .lamp-mark,
+.fixture:hover .t-mark {
+    outline: 1px solid var(--floor-text);
+    outline-offset: 3px;
+}
+
+.wall-tag:hover {
+    box-shadow: inset 0 0 0 1px var(--floor-text);
+}
+
+.fixture:focus-visible,
+.wall-tag:focus-visible {
+    outline: 2px solid var(--lamp-core);
+    outline-offset: 0;
+}
+
+.summary {
+    max-width: 62ch;
+    margin-top: 18px;
+    color: var(--muted);
+}
+
+/* ---------- commands ---------- */
+
+.talk {
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.talk h2 {
+    padding-bottom: 12px;
+    font-size: 1.125rem;
+    font-weight: 700;
+    border-bottom: 1px solid var(--rule);
+}
+
+.log {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 4px 4px 16px 0;
+}
+
+.empty {
+    max-width: 42ch;
+    padding-top: 16px;
+    color: var(--muted);
+}
+
+.turn {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 12px;
+    row-gap: 6px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--rule);
+}
+
+.turn time {
+    grid-row: 1;
+    padding-top: 2px;
+    white-space: nowrap;
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+}
+
+.turn > :not(time) {
+    grid-column: 2;
+    max-width: 60ch;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.said {
+    font-weight: 700;
+}
+
+.reply.pending {
+    color: var(--muted);
+}
+
+.reply.error {
+    color: var(--error);
+}
+
+.changes {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 4px 0 0;
+    padding: 8px 0 0;
+    list-style: none;
+    font-size: 0.9375rem;
+    border-top: 1px dashed var(--rule);
+}
+
+.changes li {
+    position: relative;
+    padding-left: 20px;
+}
+
+/* Lit or unlit lamp mark in front of each change */
+.changes li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.3em;
+    width: 10px;
+    height: 10px;
+    border: 1.5px solid var(--muted);
+    border-radius: 50%;
+}
+
+.changes li.up::before {
+    background: var(--lamp);
+    border-color: color-mix(in oklab, var(--lamp) 70%, var(--ink));
+}
+
+.no-change {
+    font-size: 0.9375rem;
+    color: var(--muted);
+}
+
+.composer {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-top: 16px;
+}
+
+.suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.suggestions:empty {
+    display: none;
+}
+
+.suggestion {
+    padding: 6px 12px;
+    font: inherit;
+    font-size: 0.875rem;
+    color: var(--ink);
+    background: transparent;
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    cursor: pointer;
+}
+
+.suggestion:hover {
+    border-color: var(--ink);
+}
+
+.input-row {
+    display: flex;
+    gap: 8px;
+}
+
+.input-row input {
+    flex: 1;
+    min-width: 0;
+    padding: 12px 14px;
+    font: inherit;
+    color: var(--ink);
+    background: var(--field);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+}
+
+.input-row input::placeholder {
+    color: var(--muted);
+}
+
+.input-row input:focus-visible {
+    outline-offset: 0;
+    border-color: var(--ink);
+}
+
+.input-row button {
+    padding: 12px 22px;
+    font: inherit;
+    font-weight: 700;
+    color: var(--page);
+    background: var(--ink);
+    border: 0;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .room,
+    .pool,
+    .lamp-mark,
+    .shade,
+    .leaf,
+    .front-door::before,
+    .front-door::after {
+        transition: none;
+    }
+}
+
+/* ---------- small screens ---------- */
+
+@media (max-width: 1100px) {
+    .layout {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 36px;
+    }
+
+    .plan-col {
+        padding-top: 0;
+    }
+
+    .talk {
+        height: 75vh;
+    }
+
+    html,
+    body {
+        height: auto;
+    }
+}
+
+@media (max-width: 900px) {
+    :root {
+        --wall: 10px;
+    }
+
+    .top {
+        padding: 18px 16px 0;
+    }
+
+    .layout {
+        padding: 24px 16px;
+    }
+}
+
+/* Narrow: every room stacks in one column. Windows move to the right-hand
+   outside wall and doorways connect each room to the one below it. */
+@media (max-width: 600px) {
+    .row {
+        flex-direction: column;
+    }
+
+    .plan .room,
+    .plan.two-rows .room {
+        flex: none;
+        min-height: 250px;
+    }
+
+    .window,
+    .room.front .window {
+        top: 50%;
+        bottom: auto;
+        left: auto;
+        right: calc(var(--wall) * -1);
+        width: var(--wall);
+        height: min(40%, 110px);
+        transform: translateY(-50%);
+        background:
+            linear-gradient(var(--poche), var(--poche)) 0 0 / 2px 100% no-repeat,
+            linear-gradient(var(--poche), var(--poche)) 50% 0 / 1px 100% no-repeat,
+            linear-gradient(var(--poche), var(--poche)) 100% 0 / 2px 100% no-repeat,
+            var(--page);
+    }
+
+    .shade {
+        background: repeating-linear-gradient(180deg, var(--slat) 0 3px, transparent 3px 5px);
+        transform: scaleY(var(--closed));
+        transform-origin: top;
+    }
+
+    .opening.side {
+        display: none;
+    }
+
+    .opening.below {
+        display: block;
+    }
+
+    .plan > .row:last-child > .room:last-child .opening.below {
+        display: none;
+    }
+
+    .thermostat-value {
+        font-size: 1.625rem;
+    }
 }

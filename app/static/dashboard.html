@@ -1,60 +1,51 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
-  <title>SmartHome Dashboard</title>
-  <link rel="stylesheet" href="/static/dashboard.css">
-  <link rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Smart Home</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap">
+  <link rel="stylesheet" href="/static/dashboard.css?v=7">
 </head>
 
 <body>
 
-<header>
-    <h1>Smart Home Dashboard</h1>
+<header class="top">
+    <h1>Smart Home</h1>
+    <p id="connection" class="connection" data-status="connecting">Connecting</p>
 </header>
 
-<div class="container">
+<main class="layout">
 
-    <div class="status-panel">
-        <h2>Status</h2>
+    <section class="plan-col" aria-labelledby="plan-title">
+        <h2 id="plan-title" class="visually-hidden">Floor plan</h2>
+        <div id="plan" class="plan">
+            <p class="plan-note">Loading rooms…</p>
+        </div>
+        <p id="summary" class="summary" aria-live="polite"></p>
+    </section>
 
-        <div class="status-card">
-            <span class="label">Living Room Light:</span>
-            <span id="living-light-status" class="value">?</span>
-        </div>
-        
-        <div class="status-card">
-            <span class="label">Living Room Brightness:</span>
-            <span id="living-brightness-status" class="value">?</span>
-        </div>
+    <section class="talk" aria-labelledby="talk-title">
+        <h2 id="talk-title">Commands</h2>
 
-        <div class="status-card">
-            <span class="label">Bedroom Light:</span>
-            <span id="bedroom-light-status" class="value">?</span>
-        </div>
-        
-        <div class="status-card">
-            <span class="label">Bedroom Brightness:</span>
-            <span id="bedroom-brightness-status" class="value">?</span>
+        <div id="log" class="log" aria-live="polite">
+            <p id="empty" class="empty">Tell the house what to do. Type a command, pick one below, or click a lamp on the plan to start one.</p>
         </div>
 
-        <div class="status-card">
-            <span class="label">Living Room Temp:</span>
-            <span id="living-temp-status" class="value">?</span>
-        </div>
-    </div>
+        <form id="chat-form" class="composer" autocomplete="off">
+            <div id="suggestions" class="suggestions"></div>
+            <div class="input-row">
+                <label for="command-input" class="visually-hidden">Command</label>
+                <input id="command-input" placeholder="Dim the bedroom light to 30%">
+                <button id="send-btn" type="submit" disabled>Send</button>
+            </div>
+        </form>
+    </section>
 
-    <div class="chat-panel">
-        <div id="messages" class="messages"></div>
-
-        <div class="input-area">
-            <input id="command-input" placeholder="Type a command…">
-            <button id="send-btn">Send</button>
-        </div>
-    </div>
-
-</div>
+</main>
 
 <script>
     const s = document.createElement("script");

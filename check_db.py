@@ -17,9 +17,15 @@ async def check_database():
                 return
 
             for d in devices:
-                status = "ON" if d.state.get("on") else "OFF"
+                s = d.state or {}
                 if d.type == "thermostat":
-                    status = f"{d.state.get('temperature')}°C"
+                    status = f"{s.get('temperature')}°C"
+                elif d.type == "blinds":
+                    status = f"{s.get('position')}% open"
+                elif d.type == "lock":
+                    status = "LOCKED" if s.get("locked") else "UNLOCKED"
+                else:
+                    status = "ON" if s.get("on") else "OFF"
                 
                 print(f"[{d.id}] {d.name} ({d.type})")
                 print(f"    Room: {d.room.name}")

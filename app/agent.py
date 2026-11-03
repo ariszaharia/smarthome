@@ -2,16 +2,21 @@ from langgraph.prebuilt import create_react_agent
 from langchain_ollama import ChatOllama
 from langchain_core.tools import tool
 
-from fastapi import FastAPI, WebSocket
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles\
+from fastapi.staticfiles import StaticFiles
 
 from sqlalchemy.orm import joinedload
 from sqlalchemy import select
 from sqlalchemy.orm.attributes import flag_modified
 from app.database import async_session
 from app.models import Device, Room
-from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_core.messages import (
+    SystemMessage,
+    HumanMessage,
+    AIMessage,
+    BaseMessage,
+)
 
 import os
 
@@ -47,46 +52,51 @@ async def find_devices(query: str):
             for d, r in result.all()
         ]
 
+async def update_state(device_id: str, types: set[str], changes: dict, requires_on: bool = False):
+    """
+    Load a device, check it is one of `types`, merge `changes` into its state
+    and commit. Returns the device, or an error string for the model.
+    """
+    async with async_session() as session:
+        device = await session.get(Device, int(device_id))
+
+        if not device:
+            return f"Device with ID {device_id} not found."
+        if device.type not in types:
+            return f"Device with ID {device_id} is a {device.type}, not a {' or '.join(sorted(types))}."
+        if requires_on and not device.state.get("on", False):
+            return f"{device.name} is off. Turn it on first."
+
+        device.state.update(changes)
+        flag_modified(device, "state")
+        await session.commit()
+        return device
+
+
 @tool
 async def set_temp(device_id: str, target_temp: int):
     """
     Set the temperature of a thermostat device (15–28°C).
     """
-    async with async_session() as session:
-        device = await session.get(Device, int(device_id))
+    if not 15 <= target_temp <= 28:
+        return "Temperature outside safe range (15–28)."
 
-        if not device:
-            return f"Device with ID {device_id} not found."
-        if device.type != "thermostat":
-            return f"Device with ID {device_id} is not a thermostat."
-        if not 15 <= target_temp <= 28:
-            return "Temperature outside safe range (15–28)."
-
-        device.state["temperature"] = target_temp
-        flag_modified(device, "state")
-        await session.commit()
-
-        return f"Success! Thermostat set to {target_temp}°C."
+    device = await update_state(device_id, {"thermostat"}, {"temperature": target_temp})
+    if isinstance(device, str):
+        return device
+    return f"Success! {device.name} set to {target_temp}°C."
 
 
 @tool
-async def light_switch(device_id: str, on: bool):
+async def power_switch(device_id: str, on: bool):
     """
-    Turn a light device ON or OFF.
+    Turn a light, plug (TV, coffee machine, towel rail...) or speaker ON or OFF.
     """
-    async with async_session() as session:
-        device = await session.get(Device, int(device_id))
+    device = await update_state(device_id, {"light", "plug", "speaker"}, {"on": on})
+    if isinstance(device, str):
+        return device
+    return f"{device.name} turned {'ON' if on else 'OFF'}."
 
-        if not device:
-            return f"Device with ID {device_id} not found."
-        if device.type != "light":
-            return f"Device with ID {device_id} is not a light bulb."
-
-        device.state["on"] = on
-        flag_modified(device, "state")
-        await session.commit()
-
-        return f"Light bulb turned {'ON' if on else 'OFF'}."
 
 @tool
 async def light_brightness(device_id: str, brightness: int):
@@ -94,25 +104,56 @@ async def light_brightness(device_id: str, brightness: int):
     Adjust the brightness of a light device (0–100).
     Light must be ON.
     """
-    async with async_session() as session:
-        device = await session.get(Device, int(device_id))
+    if not 0 <= brightness <= 100:
+        return "Brightness should be between 0 and 100."
 
-        if not device:
-            return f"Device with ID {device_id} not found."
-        if not 0 <= brightness <= 100:
-            return "Brightness should be between 0 and 100."
-        if not device.state.get("on", False):
-            return "Lights must be ON to adjust brightness."
-
-        device.state["brightness"] = brightness
-        flag_modified(device, "state")
-        await session.commit()
-
-        return f"Brightness set to {brightness}."
+    device = await update_state(device_id, {"light"}, {"brightness": brightness}, requires_on=True)
+    if isinstance(device, str):
+        return device
+    return f"{device.name} brightness set to {brightness}%."
 
 
+@tool
+async def set_blinds(device_id: str, position: int):
+    """
+    Open or close blinds. position is how far open they are:
+    0 = fully closed, 100 = fully open, 50 = half open.
+    """
+    if not 0 <= position <= 100:
+        return "Blinds position should be between 0 (closed) and 100 (open)."
 
-tools = [set_temp, light_switch, light_brightness, find_devices]
+    device = await update_state(device_id, {"blinds"}, {"position": position})
+    if isinstance(device, str):
+        return device
+    return f"{device.name} set to {position}% open."
+
+
+@tool
+async def door_lock(device_id: str, locked: bool):
+    """
+    Lock (locked=true) or unlock (locked=false) a door lock.
+    """
+    device = await update_state(device_id, {"lock"}, {"locked": locked})
+    if isinstance(device, str):
+        return device
+    return f"{device.name} {'locked' if locked else 'unlocked'}."
+
+
+@tool
+async def speaker_volume(device_id: str, volume: int):
+    """
+    Set the volume of a speaker (0–100). Speaker must be ON.
+    """
+    if not 0 <= volume <= 100:
+        return "Volume should be between 0 and 100."
+
+    device = await update_state(device_id, {"speaker"}, {"volume": volume}, requires_on=True)
+    if isinstance(device, str):
+        return device
+    return f"{device.name} volume set to {volume}%."
+
+
+tools = [set_temp, power_switch, light_brightness, set_blinds, door_lock, speaker_volume, find_devices]
 
 
 
@@ -135,9 +176,9 @@ This device list is authoritative and always correct.
 Each device has:
 - id (string or integer, primary key)
 - name (string)
-- type ("light", "thermostat", etc.)
+- type ("light", "thermostat", "blinds", "lock", "speaker", "plug")
 - room_name (string)
-- state (object, e.g. {on, brightness, temperature})
+- state (object, e.g. {on, brightness}, {temperature}, {position}, {locked}, {on, volume})
 
 --------------------------------------------------
 CORE RULES (MUST FOLLOW)
@@ -156,9 +197,18 @@ CORE RULES (MUST FOLLOW)
 INTENT → ACTION MAPPING
 --------------------------------------------------
 
-- Turn on/off a light → light_switch(device_id, on)
+- Turn on/off a light, plug or speaker → power_switch(device_id, on)
+  (plugs power things like the TV, coffee machine and towel rail)
 - Change light brightness → light_brightness(device_id, brightness)
 - Set temperature → set_temp(device_id, target_temp)
+- Open/close blinds → set_blinds(device_id, position)
+  (open = 100, closed = 0, "half open" = 50)
+- Lock/unlock a door → door_lock(device_id, locked)
+- Change speaker volume → speaker_volume(device_id, volume)
+- "All" requests (e.g. "turn off all lights") → call the tool once
+  for EVERY matching device, without asking which one.
+- Questions about the house ("is the front door locked?") → answer
+  from the device list in one short sentence. Do not call a tool.
 
 --------------------------------------------------
 HOW TO SELECT A DEVICE
@@ -166,7 +216,7 @@ HOW TO SELECT A DEVICE
 
 When a request is received:
 
-1. Identify the intent (light, brightness, temperature).
+1. Identify the intent (power, brightness, temperature, blinds, lock, volume).
 2. Filter devices by:
    - device type
    - room_name (if mentioned)
@@ -207,7 +257,7 @@ User: "Turn on the living room light"
 (Exactly one matching device exists)
 
 Assistant:
-→ call light_switch(device_id=1, on=true)
+→ call power_switch(device_id=1, on=true)
 
 ---
 
@@ -268,38 +318,74 @@ app.mount("/static", StaticFiles(directory=static_dir), name="static")
 def dashboard():
     return FileResponse(os.path.join(static_dir, "dashboard.html"))
 
+MAX_HISTORY_MESSAGES = 20
+
+
+async def get_devices() -> list[dict]:
+    """Return every device with its room, in room creation order then by name.
+    The dashboard lays out its floor plan in this order."""
+    async with async_session() as session:
+        res = await session.execute(select(Device).options(joinedload(Device.room)))
+        devices = [
+            {
+                "id": d.id,
+                "name": d.name,
+                "type": d.type,
+                "room": d.room.name if d.room else None,
+                "room_id": d.room.id if d.room else None,
+                "state": d.state,
+            }
+            for d in res.scalars().all()
+        ]
+    return sorted(devices, key=lambda d: (d["room_id"] or 0, d["name"]))
+
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
+
+    history: list[BaseMessage] = []
+
+    # Send the current state right away so the dashboard isn't empty
+    await websocket.send_json({"devices": await get_devices()})
+
     while True:
         try:
             message = await websocket.receive_text()
 
-            async with async_session() as session:
+            devices = await get_devices()
+            state_str = "CURRENT STATE:\n" + "\n".join(
+                f"- ID {d['id']}: {d['name']} ({d['type']}) in {d['room']}. State: {d['state']}"
+                for d in devices
+            )
 
-                res = await session.execute(select(Device).options(joinedload(Device.room)))
-                db_devices = res.scalars().all()
-                state_str = "CURRENT STATE:\n" + "\n".join([
-                    f"- ID {d.id}: {d.name} ({d.type}) in {d.room.name}. State: {d.state}" 
-                    for d in db_devices
-                ])
+            user_message = HumanMessage(content=message)
 
             result = await agent.ainvoke({
-                "messages": [SystemMessage(content=state_str), HumanMessage(content=message)]
+                "messages": [SystemMessage(content=state_str), *history, user_message]
             })
 
-            async with async_session() as session:
-                res = await session.execute(select(Device))
-                updated_devices = [
-                    {"id": d.id, "name": d.name, "type": d.type, "state": d.state} 
-                    for d in res.scalars().all()
-                ]
+            reply = result["messages"][-1]
+
+            history.append(user_message)
+            history.append(AIMessage(content=reply.content))
+            del history[:-MAX_HISTORY_MESSAGES]
 
             await websocket.send_json({
-                "messages": result["messages"][-1].content,
-                "devices": updated_devices
+                "messages": reply.content,
+                "devices": await get_devices()
             })
 
+        except WebSocketDisconnect:
+            print("WebSocket closed by client.")
+            break
         except Exception as e:
             print(f"WebSocket Error: {e}")
-            break
+            try:
+                await websocket.send_json({
+                    "messages": "The model didn't return an answer. Send the command again; "
+                                "if it keeps failing, check the smarthome_api logs.",
+                    "error": True
+                })
+            except Exception:
+                break  # connection is gone
