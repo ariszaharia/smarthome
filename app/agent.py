@@ -11,6 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.orm.attributes import flag_modified
 from app.database import async_session
 from app.models import Device, Room
+from app.seed import prepare_database
 from langchain_core.messages import (
     SystemMessage,
     HumanMessage,
@@ -19,6 +20,7 @@ from langchain_core.messages import (
 )
 
 import os
+from contextlib import asynccontextmanager
 
 
 @tool
@@ -311,7 +313,14 @@ if not os.path.exists(static_dir):
     raise RuntimeError(f"Static directory not found: {static_dir}")
 
 
-app = FastAPI(title = "Smart Home Assisant")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Create the tables and seed the demo house on first start
+    await prepare_database()
+    yield
+
+
+app = FastAPI(title = "Smart Home Assisant", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 @app.get('/')

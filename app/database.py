@@ -1,9 +1,9 @@
-import asyncio
+import os
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import sessionmaker
 
-DATABASE_URL = "postgresql+asyncpg://aris:aris@db:5432/smarthome"
+DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql+asyncpg://aris:aris@db:5432/smarthome")
 
 engine = create_async_engine(
     DATABASE_URL,

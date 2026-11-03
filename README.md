@@ -45,8 +45,11 @@ git clone -b database https://github.com/ariszaharia/smarthome.git
 cd smarthome  
 **First time opening:**  
 * docker compose up -d --build
-* docker exec -it smarthome_api python init_db.py (Creates the database)
-* docker exec -it smarthome_api python seed_db.py (Populates it with Devices and Rooms)
+* Open http://localhost:8000
+
+On first start the API creates the tables and seeds a demo house (5 rooms, 17 devices) by itself. The first start also downloads the Qwen 2.5 7B model, which takes a few minutes.
+
+**Reset the house** to its starting state: docker exec -it smarthome_api python seed_db.py
 
   
 **Managing containers**

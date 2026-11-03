@@ -9,6 +9,11 @@ services:
       POSTGRES_DB: smarthome
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aris -d smarthome"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -35,9 +40,12 @@ services:
       - DATABASE_URL=postgresql+asyncpg://aris:aris@db:5432/smarthome
     volumes:
       - .:/app  
+    restart: unless-stopped
     depends_on:
-      - db
-      - ollama
+      db:
+        condition: service_healthy
+      ollama:
+        condition: service_started
 
 volumes:
   ollama_data:
