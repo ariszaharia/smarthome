@@ -11,3 +11,7 @@ postgres-data/
 .env
 
 *.log
+
+# graphify knowledge graph (local only)
+graphify-out/
+.graphify_*
