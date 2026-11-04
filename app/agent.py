@@ -1,5 +1,6 @@
 from langgraph.prebuilt import create_react_agent
 from langchain_ollama import ChatOllama
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.tools import tool
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -17,6 +18,7 @@ from langchain_core.messages import (
     HumanMessage,
     AIMessage,
     BaseMessage,
+    ToolMessage,
 )
 
 import os
@@ -75,7 +77,7 @@ async def update_state(device_id: str, types: set[str], changes: dict, requires_
         return device
 
 
-@tool
+@tool(return_direct=True)
 async def set_temp(device_id: str, target_temp: int):
     """
     Set the temperature of a thermostat device (15–28°C).
@@ -89,7 +91,7 @@ async def set_temp(device_id: str, target_temp: int):
     return f"Success! {device.name} set to {target_temp}°C."
 
 
-@tool
+@tool(return_direct=True)
 async def power_switch(device_id: str, on: bool):
     """
     Turn a light, plug (TV, coffee machine, towel rail...) or speaker ON or OFF.
@@ -100,7 +102,7 @@ async def power_switch(device_id: str, on: bool):
     return f"{device.name} turned {'ON' if on else 'OFF'}."
 
 
-@tool
+@tool(return_direct=True)
 async def light_brightness(device_id: str, brightness: int):
     """
     Adjust the brightness of a light device (0–100).
@@ -115,7 +117,7 @@ async def light_brightness(device_id: str, brightness: int):
     return f"{device.name} brightness set to {brightness}%."
 
 
-@tool
+@tool(return_direct=True)
 async def set_blinds(device_id: str, position: int):
     """
     Open or close blinds. position is how far open they are:
@@ -130,7 +132,7 @@ async def set_blinds(device_id: str, position: int):
     return f"{device.name} set to {position}% open."
 
 
-@tool
+@tool(return_direct=True)
 async def door_lock(device_id: str, locked: bool):
     """
     Lock (locked=true) or unlock (locked=false) a door lock.
@@ -141,7 +143,7 @@ async def door_lock(device_id: str, locked: bool):
     return f"{device.name} {'locked' if locked else 'unlocked'}."
 
 
-@tool
+@tool(return_direct=True)
 async def speaker_volume(device_id: str, volume: int):
     """
     Set the volume of a speaker (0–100). Speaker must be ON.
@@ -159,11 +161,24 @@ tools = [set_temp, power_switch, light_brightness, set_blinds, door_lock, speake
 
 
 
-llm = ChatOllama(
-    model="qwen2.5:7b",
-    base_url="http://ollama:11434",
-    timeout=300
-)
+LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "ollama")
+
+if LLM_PROVIDER == "gemini":
+    
+    llm = ChatGoogleGenerativeAI(
+        model=os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite"),
+        google_api_key=os.environ["GOOGLE_API_KEY"],
+        temperature=0,
+        timeout=60,
+        # Fail fast on quota errors instead of silently retrying for a minute.
+        max_retries=1,
+    )
+else:
+    llm = ChatOllama(
+        model="qwen2.5:7b",
+        base_url="http://ollama:11434",
+        timeout=300,
+    )
 
 
 agent = create_react_agent(
@@ -315,7 +330,6 @@ if not os.path.exists(static_dir):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Create the tables and seed the demo house on first start
     await prepare_database()
     yield
 
@@ -355,7 +369,6 @@ async def websocket_endpoint(websocket: WebSocket):
 
     history: list[BaseMessage] = []
 
-    # Send the current state right away so the dashboard isn't empty
     await websocket.send_json({"devices": await get_devices()})
 
     while True:
@@ -370,18 +383,38 @@ async def websocket_endpoint(websocket: WebSocket):
 
             user_message = HumanMessage(content=message)
 
-            result = await agent.ainvoke({
-                "messages": [SystemMessage(content=state_str), *history, user_message]
-            })
+            turn_input = [SystemMessage(content=state_str), *history, user_message]
+            result = await agent.ainvoke({"messages": turn_input})
 
-            reply = result["messages"][-1]
+            new_messages = result["messages"][len(turn_input):]
+            last = new_messages[-1] if new_messages else None
 
-            history.append(user_message)
-            history.append(AIMessage(content=reply.content))
-            del history[:-MAX_HISTORY_MESSAGES]
+            # Device tools return directly, so a turn ends either with the model's
+            # text or with tool results. Gemini may also end with an empty message.
+            if isinstance(last, AIMessage) and last.text.strip():
+                reply_text = last.text.strip()
+            else:
+                tool_results = [m.text for m in new_messages if isinstance(m, ToolMessage)]
+                reply_text = " ".join(tool_results) or "Done."
+
+            # Keep the real tool calls in the history; with only text replies the
+            # model learns to say "turned ON" without calling a tool.
+            if isinstance(last, AIMessage) and not last.tool_calls:
+                new_messages = new_messages[:-1]
+            history.extend([user_message, *new_messages, AIMessage(content=reply_text)])
+
+            # Trim whole turns so a tool call is never separated from its result.
+            while len(history) > MAX_HISTORY_MESSAGES:
+                next_turn = next(
+                    (i for i, m in enumerate(history) if i > 0 and isinstance(m, HumanMessage)),
+                    None,
+                )
+                if next_turn is None:
+                    break
+                del history[:next_turn]
 
             await websocket.send_json({
-                "messages": reply.content,
+                "messages": reply_text,
                 "devices": await get_devices()
             })
 
@@ -390,11 +423,16 @@ async def websocket_endpoint(websocket: WebSocket):
             break
         except Exception as e:
             print(f"WebSocket Error: {e}")
+            if "RESOURCE_EXHAUSTED" in str(e) or "429" in str(e):
+                error_text = ("The Gemini API quota is used up. Wait a bit (or until tomorrow "
+                              "for the daily limit), or switch GEMINI_MODEL / enable billing.")
+            else:
+                error_text = ("The model didn't return an answer. Send the command again; "
+                              "if it keeps failing, check the smarthome_api logs.")
             try:
                 await websocket.send_json({
-                    "messages": "The model didn't return an answer. Send the command again; "
-                                "if it keeps failing, check the smarthome_api logs.",
+                    "messages": error_text,
                     "error": True
                 })
             except Exception:
-                break  # connection is gone
+                break  

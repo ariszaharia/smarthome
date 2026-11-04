@@ -20,6 +20,7 @@ services:
   ollama:
     container_name: ollama
     image: ollama/ollama:latest
+    profiles: ["local"]
     ports:
       - "11434:11434"
     volumes:
@@ -38,14 +39,15 @@ services:
       - PYTHONUNBUFFERED=1
       - PYTHONPATH=/app
       - DATABASE_URL=postgresql+asyncpg://aris:aris@db:5432/smarthome
+      - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-3.5-flash-lite}
     volumes:
-      - .:/app  
+      - .:/app
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
-      ollama:
-        condition: service_started
 
 volumes:
   ollama_data:

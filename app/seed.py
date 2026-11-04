@@ -11,8 +11,6 @@ from sqlalchemy.exc import DBAPIError
 from app.database import async_session, engine
 from app.models import Base, Device, Room, User, UserRoom
 
-# Rooms are created in floor-plan order: the dashboard puts the first half
-# along the back of the house and the rest (with the front door) along the front.
 HOUSE = {
     "Bedroom": [
         ("Bedroom Light", "light", {"on": True, "brightness": 40}),

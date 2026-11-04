@@ -8,3 +8,4 @@ langchain-community
 langchain-ollama
 langgraph
 pydantic
+langchain-google-genai
